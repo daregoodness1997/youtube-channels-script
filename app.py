@@ -26,24 +26,25 @@ from main import (
 def extract_spreadsheet_id(sheet_url):
     """
     Extract spreadsheet ID from Google Sheets URL.
-    
+
     Args:
         sheet_url: Google Sheets URL or spreadsheet ID
-        
+
     Returns:
         Spreadsheet ID or None if invalid
     """
     # If it's already an ID (alphanumeric string)
-    if re.match(r'^[a-zA-Z0-9_-]{30,}$', sheet_url.strip()):
+    if re.match(r"^[a-zA-Z0-9_-]{30,}$", sheet_url.strip()):
         return sheet_url.strip()
-    
+
     # Extract from URL
-    pattern = r'/spreadsheets/d/([a-zA-Z0-9_-]+)'
+    pattern = r"/spreadsheets/d/([a-zA-Z0-9_-]+)"
     match = re.search(pattern, sheet_url)
     if match:
         return match.group(1)
-    
+
     return None
+
 
 # Page configuration
 st.set_page_config(
@@ -82,42 +83,44 @@ with st.sidebar:
     st.header("⚙️ Settings")
 
     skip_transcripts = st.checkbox(
-        "Skip Transcripts", 
+        "Skip Transcripts",
         value=False,
-        help="Skip fetching video transcripts for faster processing"
+        help="Skip fetching video transcripts for faster processing",
     )
 
     st.markdown("---")
     st.subheader("📊 Google Sheets Export")
-    
+
     skip_sheets = st.checkbox(
         "Skip Google Sheets",
         value=False,
         help="Only save to local database, skip Google Sheets export",
     )
-    
+
     use_custom_sheet = st.checkbox(
         "Use Custom Google Sheet",
         value=False,
         disabled=skip_sheets,
-        help="Provide your own Google Sheet URL"
+        help="Provide your own Google Sheet URL",
     )
-    
+
     custom_sheet_url = None
     custom_worksheet_name = "Sheet1"
-    
+
     if use_custom_sheet and not skip_sheets:
         custom_sheet_url = st.text_input(
             "Google Sheet URL",
             placeholder="https://docs.google.com/spreadsheets/d/...",
-            help="Paste your Google Sheets URL here"
+            help="Paste your Google Sheets URL here",
         )
         custom_worksheet_name = st.text_input(
             "Worksheet Name",
             value="Sheet1",
-            help="Name of the worksheet tab (default: Sheet1)"
+            help="Name of the worksheet tab (default: Sheet1)",
         )
-        st.caption("⚠️ **Share the sheet with:** `youtube-data-api@useeducator.iam.gserviceaccount.com`")
+        st.caption(
+            "⚠️ **Share the sheet with:** `youtube-data-api@useeducator.iam.gserviceaccount.com`"
+        )
 
     verbose = st.checkbox("Verbose Mode", help="Show detailed debug information")
 
@@ -180,7 +183,9 @@ with tab1:
                 placeholder="https://www.youtube.com/watch?v=xxx or video_id",
                 help="Enter any YouTube video format",
             )
-            st.caption("**Supported formats:** Video URL, short URL (youtu.be), video ID")
+            st.caption(
+                "**Supported formats:** Video URL, short URL (youtu.be), video ID"
+            )
 
     with col2:
         st.header("📝 Examples")
@@ -214,28 +219,34 @@ with tab1:
             # Initialize API
             status_text.text("🔧 Initializing YouTube API...")
             progress_bar.progress(10)
-            youtube_api = YouTubeAPI(API_KEY, YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION)
+            youtube_api = YouTubeAPI(
+                API_KEY, YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION
+            )
 
             # Initialize Google Sheets if needed
             sheets_manager = None
             if not skip_sheets:
                 status_text.text("📊 Connecting to Google Sheets...")
                 progress_bar.progress(20)
-                
+
                 # Determine which spreadsheet to use
                 target_spreadsheet_id = SPREADSHEET_ID
                 target_worksheet_name = WORKSHEET_NAME
-                
+
                 if use_custom_sheet and custom_sheet_url:
                     extracted_id = extract_spreadsheet_id(custom_sheet_url)
                     if extracted_id:
                         target_spreadsheet_id = extracted_id
                         target_worksheet_name = custom_worksheet_name
-                        st.info(f"📊 Using custom spreadsheet: {target_spreadsheet_id[:20]}...")
+                        st.info(
+                            f"📊 Using custom spreadsheet: {target_spreadsheet_id[:20]}..."
+                        )
                     else:
                         st.warning("⚠️ Invalid custom sheet URL, using default sheet")
-                
-                sheets_manager = GoogleSheetsManager(target_spreadsheet_id, target_worksheet_name)
+
+                sheets_manager = GoogleSheetsManager(
+                    target_spreadsheet_id, target_worksheet_name
+                )
                 if sheets_manager.authenticate():
                     sheets_manager.setup_headers()
                     st.sidebar.success("✅ Google Sheets connected")
@@ -258,7 +269,7 @@ with tab1:
 
                 status_text.text(f"📥 Fetching video data: {video_id}")
                 progress_bar.progress(50)
-                
+
                 if verbose:
                     st.info(f"Debug: skip_transcripts = {skip_transcripts}")
 
@@ -281,7 +292,9 @@ with tab1:
                 progress_bar.progress(40)
 
                 uploads_playlist_id = youtube_api.get_uploads_playlist_id(channel_id)
-                video_ids = youtube_api.get_all_video_ids_from_playlist(uploads_playlist_id)
+                video_ids = youtube_api.get_all_video_ids_from_playlist(
+                    uploads_playlist_id
+                )
 
                 st.info(f"📊 Found {len(video_ids)} videos")
 
@@ -379,7 +392,9 @@ with tab1:
             if not skip_transcripts and "Transcript" in df_display.columns:
                 df_display["Transcript"] = df_display["Transcript"].apply(
                     lambda x: (
-                        (str(x)[:100] + "...") if pd.notna(x) and len(str(x)) > 100 else x
+                        (str(x)[:100] + "...")
+                        if pd.notna(x) and len(str(x)) > 100
+                        else x
                     )
                 )
 
@@ -414,56 +429,82 @@ with tab1:
 with tab2:
     st.header("📊 Database Viewer")
     st.markdown("View all previously extracted YouTube video data from the database.")
-    
+
     # Refresh button and filters
     col1, col2 = st.columns([1, 3])
     with col1:
         refresh = st.button("🔄 Refresh Data", use_container_width=True)
-    
+
     try:
         # Load data from database
         with Database(DATABASE_NAME) as db:
             db.setup_table()
-            db.cursor.execute("""
+            db.cursor.execute(
+                """
                 SELECT id, title, video_url, thumbnail_url, published_at, 
                        view_count, like_count, comment_count, transcript
                 FROM videos
                 ORDER BY published_at DESC
-            """)
+            """
+            )
             rows = db.cursor.fetchall()
-        
+
         if not rows:
             st.info("📭 No data found in database. Extract some videos first!")
         else:
             # Convert to DataFrame
-            df = pd.DataFrame(rows, columns=[
-                "ID", "Title", "URL", "Thumbnail", "Published", 
-                "Views", "Likes", "Comments", "Transcript"
-            ])
-            
+            df = pd.DataFrame(
+                rows,
+                columns=[
+                    "ID",
+                    "Title",
+                    "URL",
+                    "Thumbnail",
+                    "Published",
+                    "Views",
+                    "Likes",
+                    "Comments",
+                    "Transcript",
+                ],
+            )
+
             # Filters
             st.markdown("---")
             st.subheader("🔍 Filters")
-            
+
             col1, col2, col3 = st.columns(3)
             with col1:
-                search_term = st.text_input("🔎 Search titles", placeholder="Enter keywords...")
+                search_term = st.text_input(
+                    "🔎 Search titles", placeholder="Enter keywords..."
+                )
             with col2:
-                min_views = st.number_input("Min Views", min_value=0, value=0, step=1000)
+                min_views = st.number_input(
+                    "Min Views", min_value=0, value=0, step=1000
+                )
             with col3:
-                sort_by = st.selectbox("Sort by", ["Published Date (newest)", "Published Date (oldest)", 
-                                                     "Views (high-low)", "Views (low-high)", 
-                                                     "Likes (high-low)", "Comments (high-low)"])
-            
+                sort_by = st.selectbox(
+                    "Sort by",
+                    [
+                        "Published Date (newest)",
+                        "Published Date (oldest)",
+                        "Views (high-low)",
+                        "Views (low-high)",
+                        "Likes (high-low)",
+                        "Comments (high-low)",
+                    ],
+                )
+
             # Apply filters
             filtered_df = df.copy()
-            
+
             if search_term:
-                filtered_df = filtered_df[filtered_df["Title"].str.contains(search_term, case=False, na=False)]
-            
+                filtered_df = filtered_df[
+                    filtered_df["Title"].str.contains(search_term, case=False, na=False)
+                ]
+
             if min_views > 0:
                 filtered_df = filtered_df[filtered_df["Views"] >= min_views]
-            
+
             # Apply sorting
             if sort_by == "Published Date (newest)":
                 filtered_df = filtered_df.sort_values("Published", ascending=False)
@@ -477,7 +518,7 @@ with tab2:
                 filtered_df = filtered_df.sort_values("Likes", ascending=False)
             elif sort_by == "Comments (high-low)":
                 filtered_df = filtered_df.sort_values("Comments", ascending=False)
-            
+
             # Summary statistics
             st.markdown("---")
             st.subheader("📈 Statistics")
@@ -490,19 +531,21 @@ with tab2:
                 st.metric("Total Likes", f"{filtered_df['Likes'].sum():,}")
             with col4:
                 st.metric("Total Comments", f"{filtered_df['Comments'].sum():,}")
-            
+
             # Display data
             st.markdown("---")
             st.subheader("📋 Video Records")
-            
+
             # Prepare display DataFrame
-            display_df = filtered_df[["Title", "URL", "Published", "Views", "Likes", "Comments"]].copy()
-            
+            display_df = filtered_df[
+                ["Title", "URL", "Published", "Views", "Likes", "Comments"]
+            ].copy()
+
             # Truncate titles if too long
             display_df["Title"] = display_df["Title"].apply(
                 lambda x: (x[:80] + "...") if len(str(x)) > 80 else x
             )
-            
+
             st.dataframe(
                 display_df,
                 use_container_width=True,
@@ -514,11 +557,11 @@ with tab2:
                     "Comments": st.column_config.NumberColumn("Comments", format="%d"),
                 },
             )
-            
+
             # Export options
             st.markdown("---")
             col1, col2 = st.columns(2)
-            
+
             with col1:
                 # Download CSV
                 csv = filtered_df.to_csv(index=False)
@@ -529,10 +572,14 @@ with tab2:
                     mime="text/csv",
                     use_container_width=True,
                 )
-            
+
             with col2:
                 # Delete all data
-                if st.button("🗑️ Clear All Database Data", type="secondary", use_container_width=True):
+                if st.button(
+                    "🗑️ Clear All Database Data",
+                    type="secondary",
+                    use_container_width=True,
+                ):
                     if st.session_state.get("confirm_delete", False):
                         with Database(DATABASE_NAME) as db:
                             db.cursor.execute("DELETE FROM videos")
@@ -542,7 +589,7 @@ with tab2:
                     else:
                         st.session_state["confirm_delete"] = True
                         st.warning("⚠️ Click again to confirm deletion")
-                        
+
     except Exception as e:
         st.error(f"❌ Error loading data: {str(e)}")
         st.exception(e)

@@ -2,6 +2,8 @@
 
 import gspread
 from google.oauth2.service_account import Credentials
+import os
+import json
 
 
 class GoogleSheetsManager:
@@ -35,9 +37,27 @@ class GoogleSheetsManager:
         ]
 
         try:
-            creds = Credentials.from_service_account_file(
-                self.credentials_file, scopes=scopes
-            )
+            # Try to get credentials from Streamlit secrets first (for deployment)
+            try:
+                import streamlit as st
+
+                if hasattr(st, "secrets") and "gcp_service_account" in st.secrets:
+                    # Use Streamlit secrets
+                    creds_dict = dict(st.secrets["gcp_service_account"])
+                    creds = Credentials.from_service_account_info(
+                        creds_dict, scopes=scopes
+                    )
+                else:
+                    # Fall back to credentials file
+                    creds = Credentials.from_service_account_file(
+                        self.credentials_file, scopes=scopes
+                    )
+            except (ImportError, FileNotFoundError):
+                # Streamlit not available or no secrets, use credentials file
+                creds = Credentials.from_service_account_file(
+                    self.credentials_file, scopes=scopes
+                )
+
             self.client = gspread.authorize(creds)
             spreadsheet = self.client.open_by_key(self.spreadsheet_id)
 
