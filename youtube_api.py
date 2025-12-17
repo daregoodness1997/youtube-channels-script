@@ -101,7 +101,9 @@ class YouTubeAPI:
 
             # Fetch transcript (if not skipped)
             transcript_text = (
-                None if skip_transcripts else self.get_video_transcript(video_id, verbose=verbose)
+                None
+                if skip_transcripts
+                else self.get_video_transcript(video_id, verbose=verbose)
             )
 
             video_info = {
@@ -135,33 +137,37 @@ class YouTubeAPI:
         try:
             # Initialize the transcript API
             ytt_api = YouTubeTranscriptApi()
-            
+
             # Get list of available transcripts
             transcript_list = ytt_api.list(video_id)
-            
+
             # Try to find manually created transcripts first (better quality)
             try:
-                transcript = transcript_list.find_manually_created_transcript(['en'])
+                transcript = transcript_list.find_manually_created_transcript(["en"])
             except:
                 # Try any manually created transcript in other languages
                 try:
-                    transcript = transcript_list.find_manually_created_transcript(['en', 'es', 'fr', 'de', 'pt', 'ja', 'ko', 'zh', 'ar'])
+                    transcript = transcript_list.find_manually_created_transcript(
+                        ["en", "es", "fr", "de", "pt", "ja", "ko", "zh", "ar"]
+                    )
                 except:
                     # Fall back to generated transcripts
                     try:
-                        transcript = transcript_list.find_generated_transcript(['en'])
+                        transcript = transcript_list.find_generated_transcript(["en"])
                     except:
                         # Try any available generated transcript
-                        transcript = transcript_list.find_generated_transcript(['en', 'es', 'fr', 'de', 'pt', 'ja', 'ko', 'zh', 'ar'])
-            
+                        transcript = transcript_list.find_generated_transcript(
+                            ["en", "es", "fr", "de", "pt", "ja", "ko", "zh", "ar"]
+                        )
+
             # Fetch the actual transcript data
             transcript_data = transcript.fetch()
-            
+
             # Combine all transcript segments into one text
             # The entries are objects with .text attribute, not dictionaries
             transcript_text = " ".join([entry.text for entry in transcript_data])
             return transcript_text if transcript_text.strip() else None
-            
+
         except Exception as e:
             # Transcript might not be available (disabled, private, etc.)
             if verbose:

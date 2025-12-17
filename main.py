@@ -34,21 +34,21 @@ def extract_video_id(input_string):
         Video ID string or None if not a video URL
     """
     # If it's already a video ID (11 chars, alphanumeric with - and _)
-    if re.match(r'^[\w-]{11}$', input_string):
+    if re.match(r"^[\w-]{11}$", input_string):
         return input_string
-    
+
     # Extract from various video URL formats
     video_patterns = [
-        r'(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]{11})',
-        r'youtube\.com/embed/([\w-]{11})',
-        r'youtube\.com/v/([\w-]{11})',
+        r"(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]{11})",
+        r"youtube\.com/embed/([\w-]{11})",
+        r"youtube\.com/v/([\w-]{11})",
     ]
-    
+
     for pattern in video_patterns:
         match = re.search(pattern, input_string)
         if match:
             return match.group(1)
-    
+
     return None
 
 
@@ -125,7 +125,14 @@ def get_channel_id_from_handle(youtube_api, handle):
     return None
 
 
-def process_single_video(youtube_api, video_id, database, sheets_manager=None, skip_transcripts=False, verbose=False):
+def process_single_video(
+    youtube_api,
+    video_id,
+    database,
+    sheets_manager=None,
+    skip_transcripts=False,
+    verbose=False,
+):
     """
     Process a single video and store its data.
 
@@ -138,14 +145,16 @@ def process_single_video(youtube_api, video_id, database, sheets_manager=None, s
         verbose: If True, print detailed debug information
     """
     print(f"\n[INFO] Fetching data for video: {video_id}")
-    video_data_list = youtube_api.get_video_statistics([video_id], skip_transcripts=skip_transcripts, verbose=verbose)
-    
+    video_data_list = youtube_api.get_video_statistics(
+        [video_id], skip_transcripts=skip_transcripts, verbose=verbose
+    )
+
     if not video_data_list:
         print("[ERROR] Could not fetch video data. Video may be private or deleted.")
         return
-    
+
     video_data = video_data_list[0]
-    
+
     print("\n" + "=" * 60)
     print(f"Title: {video_data['title']}")
     print(f"URL: {video_data['video_url']}")
@@ -165,7 +174,7 @@ def process_single_video(youtube_api, video_id, database, sheets_manager=None, s
     else:
         print(f"\nTranscript: Not Available")
     print("=" * 60 + "\n")
-    
+
     # Save to database
     database.insert_video(
         video_data["id"],
@@ -179,17 +188,22 @@ def process_single_video(youtube_api, video_id, database, sheets_manager=None, s
         video_data["transcript"],
     )
     database.commit()
-    
+
     # Save to Google Sheets if available
     if sheets_manager:
         sheets_manager.batch_insert_videos(video_data_list)
         print("[INFO] Data saved to Google Sheets")
-    
+
     print(f"[SUCCESS] Video data saved to database")
 
 
 def fetch_and_store_video_data(
-    youtube_api, video_ids, database, sheets_manager=None, skip_transcripts=False, verbose=False
+    youtube_api,
+    video_ids,
+    database,
+    sheets_manager=None,
+    skip_transcripts=False,
+    verbose=False,
 ):
     """
     Fetches statistics for each video and inserts them into the database and Google Sheets.
@@ -204,7 +218,9 @@ def fetch_and_store_video_data(
     """
     for i in range(0, len(video_ids), 50):  # API supports up to 50 videos per call
         batch_ids = video_ids[i : i + 50]
-        video_data_list = youtube_api.get_video_statistics(batch_ids, skip_transcripts=skip_transcripts, verbose=verbose)
+        video_data_list = youtube_api.get_video_statistics(
+            batch_ids, skip_transcripts=skip_transcripts, verbose=verbose
+        )
 
         for video_data in video_data_list:
             print(f"Title: {video_data['title']}")
@@ -278,14 +294,14 @@ def main(channel_input=None, skip_transcripts=False, verbose=False):
     # Check if input is a video URL/ID first
     print(f"\n[INFO] Processing input: {channel_input}")
     video_id = extract_video_id(channel_input)
-    
+
     if video_id:
         # Process single video
         print(f"[INFO] Detected video ID: {video_id}")
-        
+
         # Initialize YouTube API
         youtube_api = YouTubeAPI(API_KEY, YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION)
-        
+
         # Initialize Google Sheets (optional)
         sheets_manager = GoogleSheetsManager(SPREADSHEET_ID, WORKSHEET_NAME)
         sheets_enabled = sheets_manager.authenticate()
@@ -294,21 +310,25 @@ def main(channel_input=None, skip_transcripts=False, verbose=False):
             print("[INFO] Google Sheets connected successfully")
             sheets_manager.setup_headers()
         else:
-            print("[WARNING] Google Sheets not available. Data will only be saved to database.")
+            print(
+                "[WARNING] Google Sheets not available. Data will only be saved to database."
+            )
             sheets_manager = None
 
         # Setup database and process video
         with Database(DATABASE_NAME) as db:
             print("[INFO] Setting up database...")
             db.setup_table()
-            
+
             if skip_transcripts:
                 print("[INFO] Skipping transcripts for faster processing")
-            
-            process_single_video(youtube_api, video_id, db, sheets_manager, skip_transcripts, verbose)
-        
+
+            process_single_video(
+                youtube_api, video_id, db, sheets_manager, skip_transcripts, verbose
+            )
+
         return
-    
+
     # Otherwise, process as channel
     channel_id = extract_channel_id(channel_input)
 
