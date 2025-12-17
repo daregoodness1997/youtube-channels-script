@@ -75,20 +75,31 @@ If you skip this step, the application will still work but only save to the loca
 
 ### Quick Start (CLI)
 
-The easiest way to use the application:
+**Extract data from a channel:**
 
 ```bash
 ./youtube-data https://www.youtube.com/@channelname
 ```
 
-Or with just a channel ID:
+**Extract data from a single video:**
 
 ```bash
+./youtube-data https://www.youtube.com/watch?v=dQw4w9WgXcQ
+```
+
+Or with just IDs:
+
+```bash
+# Channel
 ./youtube-data UCPix8N6PMRI4KzgyjuZeF0g
+
+# Video
+./youtube-data dQw4w9WgXcQ
 ```
 
 ### Command Line Options
 
+**Channel Examples:**
 ```bash
 # Using channel URL
 python main.py https://www.youtube.com/@channelname
@@ -96,6 +107,24 @@ python main.py https://www.youtube.com/@channelname
 # Using channel ID
 python main.py UCPix8N6PMRI4KzgyjuZeF0g
 
+# Using handle
+python main.py @channelname
+```
+
+**Video Examples:**
+```bash
+# Using video URL
+python main.py https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+# Using short URL
+python main.py https://youtu.be/dQw4w9WgXcQ
+
+# Using video ID
+python main.py dQw4w9WgXcQ
+```
+
+**Options:**
+```bash
 # Interactive mode (will prompt for input)
 python main.py
 
@@ -106,7 +135,9 @@ python main.py UCPix8N6PMRI4KzgyjuZeF0g --no-sheets
 python main.py UCPix8N6PMRI4KzgyjuZeF0g --no-transcripts
 ```
 
-### Supported Channel Formats
+### Supported Input Formats
+
+**Channels:**
 
 - **Channel ID**: `UCPix8N6PMRI4KzgyjuZeF0g`
 - **Channel URL**: `https://www.youtube.com/channel/UCPix8N6PMRI4KzgyjuZeF0g`

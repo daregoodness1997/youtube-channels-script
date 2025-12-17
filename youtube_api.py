@@ -61,12 +61,14 @@ class YouTubeAPI:
 
         return video_ids
 
-    def get_video_statistics(self, video_ids):
+    def get_video_statistics(self, video_ids, skip_transcripts=False, verbose=False):
         """
         Fetch comprehensive data for a list of video IDs.
 
         Args:
             video_ids: List of video IDs (max 50)
+            skip_transcripts: If True, skip fetching transcripts (faster)
+            verbose: If True, print detailed debug information
 
         Returns:
             List of video data dictionaries with all available information
@@ -97,8 +99,10 @@ class YouTubeAPI:
             # Generate video URL
             video_url = f"https://www.youtube.com/watch?v={video_id}"
 
-            # Fetch transcript
-            transcript_text = self.get_video_transcript(video_id)
+            # Fetch transcript (if not skipped)
+            transcript_text = (
+                None if skip_transcripts else self.get_video_transcript(video_id, verbose=verbose)
+            )
 
             video_info = {
                 "id": video_id,
@@ -129,40 +133,37 @@ class YouTubeAPI:
             Transcript text as a string, or None if not available
         """
         try:
-            # Try to get transcript in any available language
-            # First, try to get a list of available transcripts
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-
-            # Try to find manually created transcripts first (usually better quality)
+            # Initialize the transcript API
+            ytt_api = YouTubeTranscriptApi()
+            
+            # Get list of available transcripts
+            transcript_list = ytt_api.list(video_id)
+            
+            # Try to find manually created transcripts first (better quality)
             try:
-                # Try English first
-                transcript = transcript_list.find_manually_created_transcript(["en"])
-                transcript_data = transcript.fetch()
+                transcript = transcript_list.find_manually_created_transcript(['en'])
             except:
-                # Try any manually created transcript
+                # Try any manually created transcript in other languages
                 try:
-                    transcript = transcript_list.find_manually_created_transcript(
-                        ["en", "es", "fr", "de", "pt", "ja", "ko", "zh", "ar"]
-                    )
-                    transcript_data = transcript.fetch()
+                    transcript = transcript_list.find_manually_created_transcript(['en', 'es', 'fr', 'de', 'pt', 'ja', 'ko', 'zh', 'ar'])
                 except:
                     # Fall back to generated transcripts
                     try:
-                        transcript = transcript_list.find_generated_transcript(["en"])
-                        transcript_data = transcript.fetch()
+                        transcript = transcript_list.find_generated_transcript(['en'])
                     except:
                         # Try any available generated transcript
-                        transcript = transcript_list.find_generated_transcript(
-                            ["en", "es", "fr", "de", "pt", "ja", "ko", "zh", "ar"]
-                        )
-                        transcript_data = transcript.fetch()
-
+                        transcript = transcript_list.find_generated_transcript(['en', 'es', 'fr', 'de', 'pt', 'ja', 'ko', 'zh', 'ar'])
+            
+            # Fetch the actual transcript data
+            transcript_data = transcript.fetch()
+            
             # Combine all transcript segments into one text
-            transcript_text = " ".join([entry["text"] for entry in transcript_data])
+            # The entries are objects with .text attribute, not dictionaries
+            transcript_text = " ".join([entry.text for entry in transcript_data])
             return transcript_text if transcript_text.strip() else None
-
+            
         except Exception as e:
             # Transcript might not be available (disabled, private, etc.)
             if verbose:
-                print(f"[DEBUG] No transcript for video {video_id}: {e}")
+                print(f"[DEBUG] No transcript for video {video_id}: {str(e)}")
             return None
