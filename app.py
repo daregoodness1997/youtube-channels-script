@@ -77,9 +77,6 @@ st.markdown(
 )
 st.markdown("---")
 
-# Navigation tabs
-tab1, tab2 = st.tabs(["📥 Extract Data", "📊 View Data"])
-
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Settings")
@@ -154,6 +151,9 @@ with st.sidebar:
     4. Paste the sheet URL
     """
     )
+
+# Navigation tabs
+tab1, tab2 = st.tabs(["📥 Extract Data", "📊 View Data"])
 
 # Tab 1: Extract Data
 with tab1:
@@ -258,6 +258,9 @@ with tab1:
 
                 status_text.text(f"📥 Fetching video data: {video_id}")
                 progress_bar.progress(50)
+                
+                if verbose:
+                    st.info(f"Debug: skip_transcripts = {skip_transcripts}")
 
                 video_data_list = youtube_api.get_video_statistics(
                     [video_id], skip_transcripts=skip_transcripts, verbose=verbose
@@ -421,14 +424,13 @@ with tab2:
         # Load data from database
         with Database(DATABASE_NAME) as db:
             db.setup_table()
-            cursor = db.cursor()
-            cursor.execute("""
+            db.cursor.execute("""
                 SELECT id, title, video_url, thumbnail_url, published_at, 
                        view_count, like_count, comment_count, transcript
                 FROM videos
                 ORDER BY published_at DESC
             """)
-            rows = cursor.fetchall()
+            rows = db.cursor.fetchall()
         
         if not rows:
             st.info("📭 No data found in database. Extract some videos first!")
@@ -533,8 +535,7 @@ with tab2:
                 if st.button("🗑️ Clear All Database Data", type="secondary", use_container_width=True):
                     if st.session_state.get("confirm_delete", False):
                         with Database(DATABASE_NAME) as db:
-                            cursor = db.cursor()
-                            cursor.execute("DELETE FROM videos")
+                            db.cursor.execute("DELETE FROM videos")
                             db.commit()
                         st.success("✅ Database cleared!")
                         st.rerun()
